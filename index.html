@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino EduLab - Game Edukasi & Simulator SMK TEI Kelas 11</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            700: '#0e7490',
+                            900: '#164e63',
+                        },
+                        arduino: {
+                            teal: '#00979D',
+                            darkteal: '#008184',
+                            orange: '#E47128',
+                            blue: '#006468'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Glowing & Grid FX */
+        .bg-grid-pattern {
+            background-size: 30px 30px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+        }
+        .glow-orange {
+            box-shadow: 0 0 20px rgba(228, 113, 40, 0.35);
+        }
+        .glow-green {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+        }
+        /* Custom LCD 16x2 Display Font & Background */
+        .lcd-screen {
+            background-color: #2b9300;
+            color: #0b2400;
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 0 0 2px rgba(11, 36, 0, 0.6);
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col bg-grid-pattern antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-arduino-teal to-cyan-400 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-cyan-400 via-teal-200 to-emerald-400 bg-clip-text text-transparent">
+                        Arduino EduLab TEI
+                    </h1>
+                    <p class="text-xs text-slate-400 flex items-center gap-2">
+                        <span><i class="fa-solid fa-graduation-cap text-cyan-400"></i> SMK Kelas 11 TEI</span>
+                        <span class="text-slate-600">•</span>
+                        <span class="text-emerald-400"><i class="fa-solid fa-circle text-[8px] animate-pulse"></i> Mode Praktikum Interaktif</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Player XP / Level Status -->
+            <div class="flex items-center gap-4 bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-400"></i>
+                    <div class="text-xs">
+                        <p class="text-slate-400">Level Siswa</p>
+                        <p id="user-level" class="font-bold text-amber-400">Pemula (Level 1)</p>
+                    </div>
+                </div>
+                <div class="h-8 w-[1px] bg-slate-800"></div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-cyan-400"></i>
+                    <div class="text-xs">
+                        <p class="text-slate-400">Total XP</p>
+                        <p id="user-xp" class="font-bold text-cyan-400">0 XP</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="bg-slate-900 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('teori')" id="tab-teori" class="tab-btn px-6 py-3.5 text-sm font-semibold flex items-center gap-2 border-b-2 border-cyan-400 text-cyan-400 transition-all">
+                <i class="fa-solid fa-book-open"></i> Modul Teori & Aplikasi
+            </button>
+            <button onclick="switchTab('lab')" id="tab-lab" class="tab-btn px-6 py-3.5 text-sm font-semibold flex items-center gap-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-flask"></i> Laboratorium Virtual & Simulator
+            </button>
+            <button onclick="switchTab('ujian')" id="tab-ujian" class="tab-btn px-6 py-3.5 text-sm font-semibold flex items-center gap-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-pen-to-square"></i> Uji Kompetensi (25 Soal)
+            </button>
+            <button onclick="switchTab('pinout')" id="tab-pinout" class="tab-btn px-6 py-3.5 text-sm font-semibold flex items-center gap-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-diagram-project"></i> Referensi Pinout & Hardware
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- ================= SECTION 1: MODUL TEORI ================= -->
+        <section id="sec-teori" class="space-y-6">
+            <!-- Welcome Banner from Teacher -->
+            <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40 p-6 rounded-2xl border border-cyan-500/20 flex flex-col md:flex-row gap-5 items-start md:items-center">
+                <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-chalkboard-user text-3xl text-cyan-400"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                        Pesan dari Guru Pengampu TEI
+                        <span class="bg-cyan-500/10 text-cyan-400 text-xs px-2.5 py-0.5 rounded-full border border-cyan-500/30 font-mono">Pak Guru Pro</span>
+                    </h2>
+                    <p class="text-sm text-slate-300 mt-1 leading-relaxed">
+                        "Selamat datang para calon Teknisi Industri dan Engineer Masa Depan! Pemrograman Mikrokontroler Arduino adalah fondasi penting dalam otomasi industri, sistem kendali terprogram, dan IoT. Pelajari teori dari dasar hingga mahir, lalu uji pemahamanmu secara langsung di Laboratorium Virtual!"
+                    </p>
+                </div>
+            </div>
+
+            <!-- Level Selector Cards for Theory -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <!-- Pemula -->
+                <div onclick="showTheoryDetail('pemula')" class="cursor-pointer group bg-slate-900 hover:bg-slate-850 p-5 rounded-2xl border border-slate-800 hover:border-cyan-500/50 transition-all duration-300 shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="bg-emerald-500/10 text-emerald-400 text-xs px-3 py-1 rounded-full font-semibold border border-emerald-500/20">Tingkat 1: Pemula</span>
+                        <i class="fa-solid fa-seedling text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-100 text-base mb-2 group-hover:text-cyan-400 transition-colors">Arsitektur & I/O Digital Dasar</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-4">Memahami struktur Mikrokontroler ATmega328P, struktur fungsi setup() & loop(), serta kendali I/O digital (digitalWrite & digitalRead).</p>
+                    <div class="flex items-center text-xs font-semibold text-cyan-400 gap-1 group-hover:translate-x-1 transition-transform">
+                        Buka Materi <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Menengah -->
+                <div onclick="showTheoryDetail('menengah')" class="cursor-pointer group bg-slate-900 hover:bg-slate-850 p-5 rounded-2xl border border-slate-800 hover:border-amber-500/50 transition-all duration-300 shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="bg-amber-500/10 text-amber-400 text-xs px-3 py-1 rounded-full font-semibold border border-amber-500/20">Tingkat 2: Menengah</span>
+                        <i class="fa-solid fa-gauge-high text-amber-400 group-hover:scale-110 transition-transform"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-100 text-base mb-2 group-hover:text-amber-400 transition-colors">Pemrosesan Analog & PWM</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-4">Mempelajari ADC 10-bit (analogRead), pemetaan skala map(), kendali analog sinyal PWM 8-bit (analogWrite), dan Komunikasi Serial.</p>
+                    <div class="flex items-center text-xs font-semibold text-amber-400 gap-1 group-hover:translate-x-1 transition-transform">
+                        Buka Materi <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </div>
+
+                <!-- Mahir -->
+                <div onclick="showTheoryDetail('mahir')" class="cursor-pointer group bg-slate-900 hover:bg-slate-850 p-5 rounded-2xl border border-slate-800 hover:border-rose-500/50 transition-all duration-300 shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="bg-rose-500/10 text-rose-400 text-xs px-3 py-1 rounded-full font-semibold border border-rose-500/20">Tingkat 3: Mahir</span>
+                        <i class="fa-solid fa-robot text-rose-400 group-hover:scale-110 transition-transform"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-100 text-base mb-2 group-hover:text-rose-400 transition-colors">Aktuator, Sensor & Protokol I2C</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-4">Penerapan Sensor Ultrasonik HC-SR04, Motor Servo, Display LCD I2C 16x2, Interupsi Eksternal, dan Otomasi Sistem Industri.</p>
+                    <div class="flex items-center text-xs font-semibold text-rose-400 gap-1 group-hover:translate-x-1 transition-transform">
+                        Buka Materi <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Theory Display Container -->
+            <div id="theory-content-box" class="bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-800 space-y-6">
+                <!-- Content generated via JavaScript -->
+            </div>
+        </section>
+
+        <!-- ================= SECTION 2: LABORATORIUM VIRTUAL ================= -->
+        <section id="sec-lab" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-microchip text-cyan-400"></i> Simulator Live Hardware Arduino
+                    </h2>
+                    <p class="text-xs text-slate-400">Pilih skenario praktikum, amati visualisasi komponen, serta uji logika kodenya secara riil!</p>
+                </div>
+                
+                <!-- Simulator Selector -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="loadSimulator('blink')" id="btn-sim-blink" class="sim-selector-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 text-white">1. Digital Output (Blink)</button>
+                    <button onclick="loadSimulator('traffic')" id="btn-sim-traffic" class="sim-selector-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">2. Traffic Light</button>
+                    <button onclick="loadSimulator('pwm')" id="btn-sim-pwm" class="sim-selector-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">3. PWM LED Dimmer</button>
+                    <button onclick="loadSimulator('ultrasonic')" id="btn-sim-ultrasonic" class="sim-selector-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">4. Ultrasonik + LCD 16x2</button>
+                    <button onclick="loadSimulator('servo')" id="btn-sim-servo" class="sim-selector-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">5. Servo Motor</button>
+                </div>
+            </div>
+
+            <!-- Interactive Workbench Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Visual Component Bench (6 Cols) -->
+                <div class="lg:col-span-6 bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[480px]">
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 id="sim-title" class="font-bold text-slate-100 text-base flex items-center gap-2">
+                                <!-- Dynamic Title -->
+                            </h3>
+                            <span id="sim-badge" class="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] uppercase font-mono px-2 py-0.5 rounded-full">
+                                LIVE SIMULATION
+                            </span>
+                        </div>
+                        <p id="sim-description" class="text-xs text-slate-400 mb-6">
+                            <!-- Dynamic Description -->
+                        </p>
+
+                        <!-- Dynamic Visual Component Display Area -->
+                        <div id="sim-canvas-area" class="bg-slate-950 p-6 rounded-xl border border-slate-800 flex flex-col items-center justify-center min-h-[260px] relative overflow-hidden">
+                            <!-- Canvas elements injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Interactive Controls Panel -->
+                    <div id="sim-controls-panel" class="mt-6 pt-4 border-t border-slate-800 space-y-3">
+                        <!-- Dynamic Controls injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Live Code Editor & Serial Monitor Panel (6 Cols) -->
+                <div class="lg:col-span-6 flex flex-col space-y-4">
+                    <!-- Code Display -->
+                    <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden flex flex-col flex-grow">
+                        <div class="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center">
+                            <span class="text-xs font-mono text-slate-300 flex items-center gap-2">
+                                <i class="fa-solid fa-code text-cyan-400"></i> main.cpp (Arduino Sketch)
+                            </span>
+                            <div class="flex gap-2">
+                                <button onclick="toggleSimulationRun()" id="btn-run-sim" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-md flex items-center gap-1.5 transition-colors shadow-lg shadow-emerald-600/20">
+                                    <i class="fa-solid fa-play"></i> Jalankan Program
+                                </button>
+                            </div>
+                        </div>
+                        <pre class="p-4 bg-slate-950 text-xs font-mono overflow-x-auto text-cyan-300 leading-relaxed flex-grow min-h-[260px]" id="code-display-area">
+                            <!-- Code injected by JS -->
+                        </pre>
+                    </div>
+
+                    <!-- Serial Monitor Terminal -->
+                    <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                        <div class="bg-slate-950 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
+                            <span class="text-xs font-mono text-slate-400 flex items-center gap-2">
+                                <i class="fa-solid fa-terminal text-emerald-400"></i> Serial Monitor (Baud Rate: 9600)
+                            </span>
+                            <button onclick="clearSerialLog()" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
+                        </div>
+                        <div id="serial-monitor-log" class="p-3 bg-black font-mono text-xs text-emerald-400 h-28 overflow-y-auto space-y-1">
+                            <p class="text-slate-600">// Serial Monitor Ready. Tekan 'Jalankan Program'.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= SECTION 3: UJI KOMPETENSI (25 SOAL) ================= -->
+        <section id="sec-ujian" class="hidden space-y-6">
+            
+            <!-- Exam Intro Card -->
+            <div id="exam-intro-card" class="bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-800 text-center space-y-4 max-w-3xl mx-auto">
+                <div class="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mx-auto">
+                    <i class="fa-solid fa-file-signature text-3xl text-cyan-400"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-100">Evaluasi Uji Kompetensi Pemrograman Arduino</h2>
+                <p class="text-xs text-slate-400 leading-relaxed max-w-xl mx-auto">
+                    Uji Pemahaman Standar Industri dan Kurikulum SMK TEI Kelas 11. Terdiri dari <strong>25 Soal Pilihan Ganda</strong> yang mencakup konsep hardware, sintaks C++, logika I/O, ADC/PWM, dan pemrosesan sensor.
+                </p>
+                
+                <div class="grid grid-cols-3 gap-3 max-w-md mx-auto pt-2 text-xs">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <p class="text-slate-400">Jumlah Soal</p>
+                        <p class="font-bold text-cyan-400">25 Butir</p>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <p class="text-slate-400">Passing Grade</p>
+                        <p class="font-bold text-emerald-400">75 / 100</p>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <p class="text-slate-400">Reward XP</p>
+                        <p class="font-bold text-amber-400">+500 XP</p>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button onclick="startExam()" class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-400 hover:to-teal-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition-all transform hover:-translate-y-0.5">
+                        <i class="fa-solid fa-play"></i> Mulai Uji Kompetensi Sekarang
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exam Main Test Area (Hidden initially) -->
+            <div id="exam-main-area" class="hidden space-y-6">
+                <!-- Exam Progress Bar & Header -->
+                <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <span id="question-badge" class="bg-cyan-500/10 text-cyan-400 font-mono text-xs px-3 py-1 rounded-full border border-cyan-500/30">
+                            Soal 1 dari 25
+                        </span>
+                        <span id="quiz-category" class="text-xs text-slate-400 font-semibold">Kategori: Dasar Mikrokontroler</span>
+                    </div>
+
+                    <div class="w-full md:w-64 bg-slate-950 h-2.5 rounded-full border border-slate-800 overflow-hidden">
+                        <div id="exam-progress-bar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full w-[4%] transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Question Box -->
+                <div class="bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-800 space-y-6">
+                    <h3 id="question-text" class="text-base md:text-lg font-semibold text-slate-100 leading-relaxed">
+                        <!-- Dynamic Question -->
+                    </h3>
+
+                    <div id="options-container" class="space-y-3">
+                        <!-- Dynamic Options injected here -->
+                    </div>
+                </div>
+
+                <!-- Navigation Controls -->
+                <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <button onclick="prevQuestion()" id="btn-prev-q" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-left"></i> Sebelumnya
+                    </button>
+                    <button onclick="nextQuestion()" id="btn-next-q" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-cyan-600/20">
+                        Selanjutnya <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    <button onclick="submitExam()" id="btn-submit-q" class="hidden px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-600/20">
+                        Selesaikan & Kirim Nilai <i class="fa-solid fa-check-double"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exam Result Box (Hidden initially) -->
+            <div id="exam-result-card" class="hidden bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-800 space-y-6">
+                <!-- Dynamically Injected Score & Explanations -->
+            </div>
+
+        </section>
+
+        <!-- ================= SECTION 4: PINOUT & REFERENSI ================= -->
+        <section id="sec-pinout" class="hidden space-y-6">
+            <div class="bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-800 space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-microchip text-cyan-400"></i> Panduan Pinout Arduino Uno R3 (ATmega328P)
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Referensi cepat fungsi pin fisik mikrokontroler untuk keperluan perancangan skema rangkaian elektronik SMK TEI.</p>
+                </div>
+
+                <!-- Interactive Pinout Diagram View -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="font-bold text-xs text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> Pin Daya (Power Pins)
+                        </h3>
+                        <ul class="text-xs space-y-2 text-slate-300">
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-rose-400">5V:</strong> Output daya ter-regulasi 5 Volt DC.</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-amber-400">3.3V:</strong> Output daya 3.3V (Maks 50mA).</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-slate-400">GND:</strong> Ground / Sumbu Nol Volts.</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-emerald-400">VIN:</strong> Input tegangan eksternal (7V - 12V DC).</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="font-bold text-xs text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-wave-square"></i> Digital I/O & PWM
+                        </h3>
+                        <ul class="text-xs space-y-2 text-slate-300">
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-cyan-300">Pin 0 - 13:</strong> Pin Digital Input/Output (HIGH/LOW).</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-amber-300">PWM Pin (~3, 5, 6, 9, 10, 11):</strong> Sinyal Modulasi Lebar Pulsa (8-bit: 0-255).</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-emerald-300">Pin 0 (RX) & 1 (TX):</strong> Komunikasi Serial UART Hardware.</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-rose-300">Pin 2 & 3:</strong> Interupsi Eksternal (INT0 & INT1).</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="font-bold text-xs text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line"></i> Analog Input & Komunikasi I2C
+                        </h3>
+                        <ul class="text-xs space-y-2 text-slate-300">
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-emerald-400">Pin A0 - A5:</strong> Input Analog ADC 10-Bit (Nilai: 0 hingga 1023).</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-cyan-400">Pin A4 (SDA):</strong> Serial Data Protocol I2C (LCD/Sensor).</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-cyan-400">Pin A5 (SCL):</strong> Serial Clock Protocol I2C.</li>
+                            <li class="bg-slate-900 p-2 rounded border border-slate-800"><strong class="text-purple-400">AREF:</strong> Tegangan referensi eksternal ADC.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Industrial Electronics Cheat Sheet -->
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                    <h3 class="font-bold text-xs text-cyan-400 uppercase tracking-wider">Rumus Penting Rangkaian Mikrokontroler TEI</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-slate-900 p-3 rounded border border-slate-800">
+                            <p class="font-semibold text-slate-200 mb-1">1. Hambatan Resistor Seri LED</p>
+                            <code class="text-cyan-300 font-mono">R = (V_CC - V_LED) / I_LED</code>
+                            <p class="text-slate-400 mt-1">Contoh: Vcc=5V, Vled=2V, I=20mA (0.02A) &rarr; R = 3V / 0.02A = <strong>150 &Omega;</strong> (Gunakan standar 220 &Omega;).</p>
+                        </div>
+                        <div class="bg-slate-900 p-3 rounded border border-slate-800">
+                            <p class="font-semibold text-slate-200 mb-1">2. Perhitungan Resolusi Tegangan ADC</p>
+                            <code class="text-cyan-300 font-mono">V_in = (Nilai_ADC / 1023.0) * 5.0 Volt</code>
+                            <p class="text-slate-400 mt-1">Resolusi per-step ADC = 5V / 1023 = <strong>4.88 mV per nilai integer</strong>.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Application JavaScript Code -->
+    <script>
+        // State Management Global Variables
+        let userXP = 0;
+        let userLevel = "Pemula (Level 1)";
+        let currentSimulator = "blink";
+        let isSimRunning = false;
+        let simInterval = null;
+
+        // Current Simulator States
+        let simState = {
+            ledBlinkState: false,
+            pushButtonPressed: false,
+            trafficPhase: 0, // 0: Red, 1: Yellow, 2: Green
+            pwmValue: 128,
+            distanceCm: 25,
+            servoAngle: 90
+        };
+
+        // Quiz State
+        let currentQuestionIdx = 0;
+        let userAnswers = {};
+        let examSubmitted = false;
+
+        // ================= THEORY DATA =================
+        const theoryData = {
+            pemula: {
+                title: "Tingkat 1: Pemula - Arsitektur Mikrokontroler & Output Digital",
+                badge: "Dasar TEI",
+                content: `
+                    <div class="space-y-4 text-slate-300 text-sm leading-relaxed">
+                        <p><strong>Mikrokontroler ATmega328P</strong> adalah otak utama dari papan Arduino Uno. Mikrokontroler ini merupakan sebuah IC tunggal yang berisi CPU, memori (FLASH, SRAM, EEPROM), dan pin I/O terintegrasi.</p>
+                        
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <h4 class="font-bold text-cyan-400 mb-2 text-xs uppercase tracking-wider">Struktur Wajib Kode Arduino:</h4>
+                            <pre class="font-mono text-xs text-emerald-300">void setup() {
+  // Dijalankan 1x saat pertama kali menyala untuk inisialisasi pin/library
+  pinMode(13, OUTPUT); // Konfigurasi Pin 13 sebagai Output Digital
+}
+
+void loop() {
+  // Dijalankan secara terus-menerus (looping) berulang kali
+  digitalWrite(13, HIGH); // Memberikan tegangan +5V ke Pin 13
+  delay(1000);           // Menunda eksekusi selama 1000 ms (1 detik)
+  digitalWrite(13, LOW);  // Memberikan tegangan 0V (GND) ke Pin 13
+  delay(1000);
+}</pre>
+                        </div>
+
+                        <h4 class="font-bold text-slate-100 text-base mt-4">Aplikasi Industri:</h4>
+                        <p>Output digital digunakan pada kendali *Solenoid Valve*, Relay penutup daya mesin, indikator lampu status panel listrik, serta alarm buzer kebakaran.</p>
+                    </div>
+                `
+            },
+            menengah: {
+                title: "Tingkat 2: Menengah - ADC Analog & Sinyal PWM",
+                badge: "Menengah TEI",
+                content: `
+                    <div class="space-y-4 text-slate-300 text-sm leading-relaxed">
+                        <p>Dunia riil bersifat **Analog** (suhu, tekanan, kecepatan), sedangkan mikrokontroler bersifat digital. Arduino Uno mengatasi hal ini dengan dua fitur utama:</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                <h5 class="font-bold text-amber-400 text-xs uppercase">1. ADC (Analog to Digital Converter)</h5>
+                                <p class="text-xs text-slate-400 mt-1">Pins A0-A5 membaca tegangan 0 - 5V dan mengoversinya menjadi nilai digital <strong>10-bit (0 hingga 1023)</strong>.</p>
+                                <pre class="font-mono text-xs text-amber-300 mt-2">int nilaiVal = analogRead(A0);</pre>
+                            </div>
+                            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                <h5 class="font-bold text-cyan-400 text-xs uppercase">2. PWM (Pulse Width Modulation)</h5>
+                                <p class="text-xs text-slate-400 mt-1">Mengubah lebar pulsa sinyal digital untuk mensimulasikan output tegangan analog <strong>8-bit (0 hingga 255)</strong>.</p>
+                                <pre class="font-mono text-xs text-cyan-300 mt-2">analogWrite(9, 128); // Tegangan ~2.5V</pre>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <h4 class="font-bold text-cyan-400 mb-2 text-xs uppercase tracking-wider">Fungsi Pemetaan Skala: map()</h4>
+                            <p class="text-xs text-slate-300">Digunakan untuk mengonversi rentang pembacaan ADC (0-1023) ke rentang output PWM (0-255):</p>
+                            <pre class="font-mono text-xs text-emerald-300 mt-2">int valADC = analogRead(A0);
+int valPWM = map(valADC, 0, 1023, 0, 255);
+analogWrite(9, valPWM);</pre>
+                        </div>
+                    </div>
+                `
+            },
+            mahir: {
+                title: "Tingkat 3: Mahir - Sensor HC-SR04, Motor Servo & Protocol I2C",
+                badge: "Mahir TEI",
+                content: `
+                    <div class="space-y-4 text-slate-300 text-sm leading-relaxed">
+                        <p>Pada tingkat mahir, siswa belajar mengintegrasikan aktuator presisi dan komunikasi data standar industri menggunakan protokol <strong>I2C (Inter-Integrated Circuit)</strong>.</p>
+
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                            <h5 class="font-bold text-rose-400 text-xs uppercase">1. Sensor Jarak Ultrasonik HC-SR04</h5>
+                            <p class="text-xs text-slate-400">Sensor memancarkan gelombang ultrasonik 40kHz melalui pin <em>Trigger</em>, lalu menunggu gema pantulan diterima oleh pin <em>Echo</em>. Waktu tempuh diukur dengan fungsi <code class="text-rose-300">pulseIn()</code>.</p>
+                            <pre class="font-mono text-xs text-rose-300">digitalWrite(trigPin, HIGH);
+delayMicroseconds(10);
+digitalWrite(trigPin, LOW);
+long duration = pulseIn(echoPin, HIGH);
+int distance = duration * 0.034 / 2; // Menghitung jarak dalam cm</pre>
+                        </div>
+
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                            <h5 class="font-bold text-emerald-400 text-xs uppercase">2. Display LCD 16x2 I2C (Alamat Default: 0x27)</h5>
+                            <p class="text-xs text-slate-400">Komunikasi I2C hemat kabel hanya butuh 2 jalur komunikasi data: <strong>SDA (A4)</strong> dan <strong>SCL (A5)</strong>.</p>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        // ================= EXAM QUESTION BANK (25 SOAL) =================
+        const questionBank = [
+            {
+                q: "1. Pada mikrokontroler Arduino Uno, pin yang bertindak sebagai antarmuka komunikasi serial UART hardware untuk transmisi data (TX) dan penerimaan data (RX) berada pada pin nomor...",
+                options: ["Pin 0 (RX) dan Pin 1 (TX)", "Pin 2 dan Pin 3", "Pin 12 dan Pin 13", "Pin A4 dan Pin A5"],
+                answer: 0,
+                explanation: "Pin 0 berfungsi sebagai RX (Receive) dan Pin 1 sebagai TX (Transmit) komunikasi UART hardware pada Arduino Uno ATmega328P."
+            },
+            {
+                q: "2. Fungsi dasar perintah pinMode(13, OUTPUT) pada sketch Arduino adalah...",
+                options: ["Membaca nilai digital dari pin 13", "Mengatur pin 13 agar berfungsi sebagai keluaran sinyal digital/tegangan", "Memberikan arus listrik sebesar 500mA ke pin 13", "Menghapus konfigurasi memori pin 13"],
+                answer: 1,
+                explanation: "pinMode() mengatur mode kerja pin mikrokontroler, di mana parameter OUTPUT mengonfigurasinya agar dapat mengeluarkan sinyal tegangan."
+            },
+            {
+                q: "3. Struktur fungsi dalam pemrograman Arduino yang hanya dieksekusi satu kali saat papan mikrokontroler pertama kali dinyalakan atau di-reset adalah...",
+                options: ["void loop()", "void setup()", "void main()", "void init()"],
+                answer: 1,
+                explanation: "void setup() dijalankan tepat satu kali saat startup untuk inisialisasi pin, baud rate serial, dan library."
+            },
+            {
+                q: "4. Berapakah resolusi bit dan nilai maksimal yang dihasilkan oleh fitur ADC (Analog to Digital Converter) pada Arduino Uno?",
+                options: ["8-bit (0 - 255)", "10-bit (0 - 1023)", "12-bit (0 - 4095)", "16-bit (0 - 65535)"],
+                answer: 1,
+                explanation: "ADC Arduino Uno memiliki resolusi 10-bit, sehingga menghasilkan nilai digital bulat dari 0 hingga 1023 (2^10 = 1024 tingkatan)."
+            },
+            {
+                q: "5. Manakah di antara kelompok pin berikut pada Arduino Uno yang mendukung sinyal PWM (Pulse Width Modulation)?",
+                options: ["Pin 0, 1, 2, 4, 7, 8", "Pin 3, 5, 6, 9, 10, 11", "Pin A0, A1, A2, A3, A4, A5", "Semua pin digital dari 0 hingga 13"],
+                answer: 1,
+                explanation: "Pin PWM ditandai dengan simbol tilde (~) pada papan Arduino Uno, yaitu pin 3, 5, 6, 9, 10, dan 11."
+            },
+            {
+                q: "6. Perintah analogWrite(pin, nilai) menerima parameter rentang nilai output PWM sebesar...",
+                options: ["0 hingga 1023", "0 hingga 255", "-128 hingga 127", "0 hingga 5"],
+                answer: 1,
+                explanation: "Fungsi analogWrite() menggunakan timer 8-bit untuk membangkitkan gelombang PWM dengan rentang nilai duty cycle dari 0 (0%) hingga 255 (100%)."
+            },
+            {
+                q: "7. Mengapa sebuah komponen LED yang terhubung ke pin digital Arduino wajib dipasang seri dengan Resistor Pembatas Arus (Current Limiting Resistor)?",
+                options: ["Untuk meningkatkan kecerahan LED hingga 2x lipat", "Mencegah arus berlebih (overcurrent) yang dapat merusak LED dan pin mikrokontroler", "Mengubah warna pendaran cahaya LED", "Mencegah terjadinya arus bolak-balik (AC)"],
+                answer: 1,
+                explanation: "LED memiliki resistansi dalam sangat kecil. Tanpa resistor pembatas arus (biasanya 220 ohm - 1k ohm), arus melampaui batas aman pin (40mA) dan merusak komponen."
+            },
+            {
+                q: "8. Sintaks untuk menginisialisasi kecepatan komunikasi serial pada baud rate 9600 bps di dalam setup() adalah...",
+                options: ["Serial.start(9600);", "Serial.begin(9600);", "Serial.open(9600);", "Serial.connect(9600);"],
+                answer: 1,
+                explanation: "Serial.begin(9600) digunakan untuk menentukan kecepatan transmisi data serial dalam satuan bits per second (bps)."
+            },
+            {
+                q: "9. Fitur internal pull-up resistor pada pin digital Arduino dapat diaktifkan melalui perintah...",
+                options: ["pinMode(pin, INPUT_PULLUP);", "digitalWrite(pin, PULLUP);", "enablePullup(pin);", "pinMode(pin, HIGH);"],
+                answer: 0,
+                explanation: "INPUT_PULLUP mengaktifkan resistor pull-up internal bernilai ~20k-50k ohm pada ATmega328P, sehingga pin default bernilai HIGH saat saklar terbuka."
+            },
+            {
+                q: "10. Library standar yang digunakan dalam Arduino IDE untuk mempermudah kendali sudut posisi Motor Servo adalah...",
+                options: ["#include <StepMotor.h>", "#include <Servo.h>", "#include <PWMControl.h>", "#include <Wire.h>"],
+                answer: 1,
+                explanation: "Library <Servo.h> menyediakan metode attach() dan write(sudut) untuk mengontrol durasi pulsa sinyal PWM motor servo."
+            },
+            {
+                q: "11. Pin khusus pada Arduino Uno yang digunakan untuk jalur komunikasi data SDA (Serial Data) pada protokol I2C adalah...",
+                options: ["Pin Digital 13", "Pin Analog A4", "Pin Analog A5", "Pin Digital 2"],
+                answer: 1,
+                explanation: "Pada Arduino Uno, jalur komunikasi I2C berada pada pin A4 (SDA - Serial Data) dan A5 (SCL - Serial Clock)."
+            },
+            {
+                q: "12. Fungsi delay(1500) pada sketch Arduino akan menghentikan sementara eksekusi program selama...",
+                options: ["15 detik", "1.5 detik", "150 milidetik", "0.15 detik"],
+                answer: 1,
+                explanation: "Parameter delay() dihitung dalam satuan milidetik (ms). 1500 ms sama dengan 1.5 detik."
+            },
+            {
+                q: "13. Tipe data C++ pada Arduino yang tepat untuk menyimpan nilai variabel angka bulat rentang -32,768 hingga 32,767 (16-bit) adalah...",
+                options: ["boolean", "float", "int", "char"],
+                answer: 2,
+                explanation: "Tipe data 'int' pada arsitektur AVR ATmega 8-bit mengalokasikan memori 16-bit (2 byte) bertanda."
+            },
+            {
+                q: "14. Rumus kecepatan suara di udara yang digunakan sensor ultrasonik HC-SR04 untuk menghitung jarak objek (dalam cm) berdasarkan lama pulsa pantul (duration dalam mikrodetik) adalah...",
+                options: ["jarak = duration * 0.034 / 2", "jarak = duration * 340 * 2", "jarak = duration / 1023", "jarak = duration * 5 / 100"],
+                answer: 0,
+                explanation: "Kecepatan suara di udara ~0.034 cm/mikrodetik. Karena gelombang bergerak bolak-balik (pergi dan memantul kembali), hasil dikali 0.034 lalu dibagi 2."
+            },
+            {
+                q: "15. Apa fungsi dari operator matematika 'map(x, in_min, in_max, out_min, out_max)' pada Arduino?",
+                options: ["Mengukur koordinat lokasi GPS", "Memonitor penggunaan memori flash", "Mengonversi atau memetakan suatu nilai variabel secara linier dari satu rentang rentang ke rentang lainnya", "Menghapus sinyal noise pada sinyal analog"],
+                answer: 2,
+                explanation: "Fungsi map() melakukan konversi proporsional linier, misalnya memetakan nilai pembacaan sensor (0-1023) menjadi nilai sudut servo (0-180)."
+            },
+            {
+                q: "16. Untuk membaca kondisi sinyal logika (HIGH atau LOW) dari suatu saklar push button pada pin digital 2, perintah yang tepat adalah...",
+                options: ["analogRead(2)", "digitalRead(2)", "digitalWrite(2, HIGH)", "pulseIn(2, HIGH)"],
+                answer: 1,
+                explanation: "digitalRead(pin) membaca status logika apakah tegangan pada pin terdeteksi mendekati 5V (HIGH) atau 0V (LOW)."
+            },
+            {
+                q: "17. Fenomena saklar mekanik (push button) yang dapat menyebabkan pemicuan sinyal palsu berulang kali saat ditekan disebut...",
+                options: ["Overvoltage", "Bouncing (Switch Bounce)", "Short Circuit", "Histeresis"],
+                answer: 1,
+                explanation: "Switch bounce terjadi akibat kontak mekanis logam saklar yang bergetar sekian milidetik saat pertama ditekan. Solusinya dapat berupa teknik Debouncing koding."
+            },
+            {
+                q: "18. Pin Interupsi Eksternal Hardware (External Interrupt) berbasis hardware pada Arduino Uno secara spesifik terletak pada...",
+                options: ["Pin Digital 2 (INT0) dan Pin Digital 3 (INT1)", "Pin Analog A0 dan A1", "Pin Digital 10 dan 11", "Pin TX (1) dan RX (0)"],
+                answer: 0,
+                explanation: "Arduino Uno memiliki 2 pin interupsi eksternal hardware dedicated, yaitu Pin 2 (INT0) dan Pin 3 (INT1) yang dipicu oleh instruksi attachInterrupt()."
+            },
+            {
+                q: "19. Komponen transistor NPN (misal BC547 atau TIP120) sering digunakan pada rangkaian output mikrokontroler untuk fungsi...",
+                options: ["Menyimpan program sketch", "Sebagai saklar elektronik (Driver) pengendali beban arus tinggi seperti Motor DC/Relay yang tidak bisa didrive langsung oleh pin Arduino", "Mengubah arus DC menjadi AC", "Sebagai pengukur suhu ruangan"],
+                answer: 1,
+                explanation: "Pin I/O Arduino hanya mampu menyuplai arus maksimum ~40mA. Transistor digunakan sebagai saklar driver untuk mengendalikan arus beban besar."
+            },
+            {
+                q: "20. Alamat I2C default yang paling sering digunakan oleh modul adapter LCD 16x2 backpack PCF8574 adalah...",
+                options: ["0x00 atau 0xFF", "0x27 atau 0x3F", "0x12 atau 0x15", "0x96 atau 0x11"],
+                answer: 1,
+                explanation: "Modul I2C Backpack LCD 16x2 umumnya menggunakan chip pcf8574 dengan alamat heksadesimal 0x27 atau 0x3F."
+            },
+            {
+                q: "21. Perintah untuk mengosongkan/clearing seluruh tampilan karakter pada layar LCD I2C dalam library LiquidCrystal_I2C adalah...",
+                options: ["lcd.clear();", "lcd.reset();", "lcd.delete();", "lcd.empty();"],
+                answer: 0,
+                explanation: "Metode lcd.clear() menghapus seluruh buffer karakter pada display dan mengembalikan kursor ke posisi awal (0,0)."
+            },
+            {
+                q: "22. Manakah sintaks percabangan logika yang benar untuk memeriksa jika tombol tertekan (LOW) DAN nilai suhu lebih besar dari 30?",
+                options: ["if (tombol == LOW || suhu > 30)", "if (tombol == LOW && suhu > 30)", "if (tombol == LOW AND suhu > 30)", "if (tombol = LOW & suhu > 30)"],
+                answer: 1,
+                explanation: "Operator logika 'DAN' dalam bahasa C/C++ menggunakan lambang ganda '&&'."
+            },
+            {
+                q: "23. Fungsi millis() pada Arduino mengembalikan nilai berharga...",
+                options: ["Jumlah milidetik sejak papan Arduino mulai menjalankan program saat ini (tipe data unsigned long)", "Waktu jam riil sistem saat ini (WIB)", "Kecepatan eksekusi CPU dalam Megahertz", "Jumlah memori SRAM tersisa"],
+                answer: 0,
+                explanation: "millis() menghitung durasi pewaktu internal (timer0) sejak daya dinyalakan tanpa memblokir eksekusi program (non-blocking delay)."
+            },
+            {
+                q: "24. Pada sensor ultrasonik HC-SR04, pin yang dipicu dengan sinyal pulsa HIGH selama 10 mikrodetik untuk memulai pemancaran gelombang ultrasonik adalah pin...",
+                options: ["Echo", "Trigger", "VCC", "GND"],
+                answer: 1,
+                explanation: "Pin Trigger bertindak sebagai input pemicu dari Arduino untuk menginstruksikan modul meluncurkan 8 burst gelombang suara 40 kHz."
+            },
+            {
+                q: "25. Apakah keluaran tegangan rata-rata ideal dari pin PWM bernilai analogWrite(6, 64) jika tegangan referensi VCC = 5 Volt?",
+                options: ["5.0 Volt", "2.5 Volt", "1.25 Volt", "0.0 Volt"],
+                answer: 2,
+                explanation: "Duty cycle = 64 / 255 ≈ 25%. Tegangan rata-rata PWM = 25% * 5V = 1.25 Volt."
+            }
+        ];
+
+        // ================= UI NAVIGATION & EVENT HANDLERS =================
+        window.onload = function() {
+            showTheoryDetail('pemula');
+            loadSimulator('blink');
+        };
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.getElementById('sec-teori').classList.add('hidden');
+            document.getElementById('sec-lab').classList.add('hidden');
+            document.getElementById('sec-ujian').classList.add('hidden');
+            document.getElementById('sec-pinout').classList.add('hidden');
+
+            // Reset tab styles
+            const tabs = ['teori', 'lab', 'ujian', 'pinout'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                btn.classList.remove('border-cyan-400', 'text-cyan-400');
+                btn.classList.add('border-transparent', 'text-slate-400');
+            });
+
+            // Show selected tab
+            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            activeBtn.classList.add('border-cyan-400', 'text-cyan-400');
+            activeBtn.classList.remove('border-transparent', 'text-slate-400');
+        }
+
+        function showTheoryDetail(levelKey) {
+            const data = theoryData[levelKey];
+            const box = document.getElementById('theory-content-box');
+            box.innerHTML = `
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <h3 class="text-lg font-bold text-slate-100">${data.title}</h3>
+                    <span class="bg-cyan-500/10 text-cyan-400 text-xs px-3 py-1 rounded-full border border-cyan-500/20 font-mono">${data.badge}</span>
+                </div>
+                ${data.content}
+            `;
+            addXP(10); // Reward XP for exploring theory
+        }
+
+        function addXP(amount) {
+            userXP += amount;
+            document.getElementById('user-xp').innerText = `${userXP} XP`;
+            
+            if (userXP >= 500) {
+                userLevel = "Master TEI (Level 3)";
+            } else if (userXP >= 200) {
+                userLevel = "Teknisi Teknolog (Level 2)";
+            }
+            document.getElementById('user-level').innerText = userLevel;
+        }
+
+        function appendSerialLog(text) {
+            const logContainer = document.getElementById('serial-monitor-log');
+            const p = document.createElement('p');
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            p.innerText = `[${timeStr}] ${text}`;
+            logContainer.appendChild(p);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearSerialLog() {
+            document.getElementById('serial-monitor-log').innerHTML = '<p class="text-slate-600">// Serial Monitor Log Cleared.</p>';
+        }
+
+        // ================= VIRTUAL LAB SIMULATION ENGINE =================
+        const simulatorConfigs = {
+            blink: {
+                title: "Praktikum 1: Digital Output (LED Blink & Button)",
+                desc: "Mengendalikan status logika Pin Digital 13 (HIGH/LOW) dan membaca saklar Push Button pada Pin 2.",
+                code: `// Lab 1: LED Blink & Switch Control
+const int ledPin = 13;
+const int buttonPin = 2;
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int btnState = digitalRead(buttonPin);
+  
+  if (btnState == LOW) { // Tombol Ditekan
+    digitalWrite(ledPin, HIGH);
+    Serial.println("STATUS: LED ON (Tombol Ditekan)");
+  } else {
+    digitalWrite(ledPin, LOW);
+    Serial.println("STATUS: LED OFF");
+  }
+  delay(200);
+}`,
+                renderControls: () => `
+                    <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <span class="text-xs font-semibold text-slate-300">Saklar Push Button (Pin 2):</span>
+                        <button id="btn-toggle-switch" onmousedown="setPushButton(true)" onmouseup="setPushButton(false)" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg shadow transition-all">
+                            <i class="fa-solid fa-fingerprint"></i> Tekan & Tahan Saklar
+                        </button>
+                    </div>
+                `,
+                renderCanvas: () => `
+                    <div class="flex items-center gap-12">
+                        <!-- LED Component -->
+                        <div class="flex flex-col items-center gap-2">
+                            <div id="visual-led" class="w-16 h-16 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center transition-all duration-300">
+                                <i class="fa-solid fa-lightbulb text-2xl text-slate-600"></i>
+                            </div>
+                            <span class="text-xs font-mono text-slate-400">LED Pin 13</span>
+                        </div>
+
+                        <!-- Wire Connection -->
+                        <div class="h-0.5 w-16 bg-slate-800 relative">
+                            <div class="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] text-slate-500">5V</div>
+                        </div>
+
+                        <!-- Push Button Component -->
+                        <div class="flex flex-col items-center gap-2">
+                            <div id="visual-button" class="w-14 h-14 bg-slate-800 rounded-xl border-2 border-slate-700 flex items-center justify-center text-slate-400 shadow">
+                                <i class="fa-solid fa-circle-dot text-xl"></i>
+                            </div>
+                            <span class="text-xs font-mono text-slate-400">Button Pin 2</span>
+                        </div>
+                    </div>
+                `,
+                tick: () => {
+                    const led = document.getElementById('visual-led');
+                    if (!led) return;
+                    if (simState.pushButtonPressed) {
+                        led.className = "w-16 h-16 rounded-full bg-emerald-500 border-4 border-emerald-300 flex items-center justify-center glow-green transition-all duration-150";
+                        led.querySelector('i').className = "fa-solid fa-lightbulb text-2xl text-white";
+                        appendSerialLog("STATUS: LED ON (Tombol Ditekan)");
+                    } else {
+                        led.className = "w-16 h-16 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center transition-all duration-150";
+                        led.querySelector('i').className = "fa-solid fa-lightbulb text-2xl text-slate-600";
+                    }
+                }
+            },
+            traffic: {
+                title: "Praktikum 2: Traffic Light Simulator (Sistem Otomasi Lalu Lintas)",
+                desc: "Sequencer digital otomasi urutan waktu Lampu Merah, Kuning, dan Hijau.",
+                code: `// Lab 2: Traffic Light Controller
+const int redPin = 12, yellowPin = 11, greenPin = 10;
+
+void setup() {
+  pinMode(redPin, OUTPUT);
+  pinMode(yellowPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Merah (Stop)
+  digitalWrite(redPin, HIGH); digitalWrite(yellowPin, LOW); digitalWrite(greenPin, LOW);
+  Serial.println("TRAFFIC: MERAH (STOP)");
+  delay(3000);
+
+  // Kuning (Warning)
+  digitalWrite(redPin, LOW); digitalWrite(yellowPin, HIGH);
+  Serial.println("TRAFFIC: KUNING (SIAP)");
+  delay(1000);
+
+  // Hijau (Go)
+  digitalWrite(yellowPin, LOW); digitalWrite(greenPin, HIGH);
+  Serial.println("TRAFFIC: HIJAU (JALAN)");
+  delay(3000);
+}`,
+                renderControls: () => `<p class="text-xs text-slate-400">// Siklus otomatis berjalan sesuai alur delay waktu.</p>`,
+                renderCanvas: () => `
+                    <div class="bg-slate-900 p-4 rounded-2xl border-2 border-slate-800 flex flex-col gap-4 shadow-2xl">
+                        <div id="tl-red" class="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700"></div>
+                        <div id="tl-yellow" class="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700"></div>
+                        <div id="tl-green" class="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700"></div>
+                    </div>
+                `,
+                tick: () => {
+                    const r = document.getElementById('tl-red');
+                    const y = document.getElementById('tl-yellow');
+                    const g = document.getElementById('tl-green');
+                    if (!r || !y || !g) return;
+
+                    // Reset all
+                    r.className = "w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700";
+                    y.className = "w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700";
+                    g.className = "w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700";
+
+                    if (simState.trafficPhase === 0) {
+                        r.className = "w-12 h-12 rounded-full bg-rose-600 border-2 border-rose-300 shadow-lg shadow-rose-600/50";
+                        appendSerialLog("TRAFFIC: MERAH (BERHENTI)");
+                    } else if (simState.trafficPhase === 1) {
+                        y.className = "w-12 h-12 rounded-full bg-amber-500 border-2 border-amber-300 shadow-lg shadow-amber-500/50";
+                        appendSerialLog("TRAFFIC: KUNING (HATI-HATI)");
+                    } else {
+                        g.className = "w-12 h-12 rounded-full bg-emerald-500 border-2 border-emerald-300 shadow-lg shadow-emerald-500/50";
+                        appendSerialLog("TRAFFIC: HIJAU (JALAN)");
+                    }
+                    simState.trafficPhase = (simState.trafficPhase + 1) % 3;
+                }
+            },
+            pwm: {
+                title: "Praktikum 3: Analog Output PWM & Potensiometer",
+                desc: "Membaca tegangan potensiometer (A0) lalu mengubah kecerahan LED via Sinyal PWM (Pin 9).",
+                code: `// Lab 3: PWM Dimmer Control
+const int potPin = A0;
+const int ledPin = 9;
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int sensorVal = analogRead(potPin); // Nilai 0 - 1023
+  int pwmVal = map(sensorVal, 0, 1023, 0, 255); // Konversi ke 0 - 255
+  
+  analogWrite(ledPin, pwmVal);
+  Serial.print("ADC: "); Serial.print(sensorVal);
+  Serial.print(" | PWM Duty: "); Serial.println(pwmVal);
+  delay(100);
+}`,
+                renderControls: () => `
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-300">Potensiometer (Analog Input A0):</span>
+                            <span id="pwm-val-label" class="text-cyan-400 font-mono">PWM: 128 / ADC: 512</span>
+                        </div>
+                        <input type="range" min="0" max="255" value="128" oninput="updatePWM(this.value)" class="w-full accent-cyan-400 cursor-pointer">
+                    </div>
+                `,
+                renderCanvas: () => `
+                    <div class="flex flex-col items-center gap-4">
+                        <div id="pwm-led" class="w-20 h-20 rounded-full bg-amber-500/50 border-4 border-amber-400 flex items-center justify-center transition-all">
+                            <i class="fa-solid fa-sun text-3xl text-amber-200"></i>
+                        </div>
+                        <div class="text-xs font-mono text-slate-400">LED PWM Pin ~9</div>
+                    </div>
+                `,
+                tick: () => {
+                    const led = document.getElementById('pwm-led');
+                    if (!led) return;
+                    const opacity = simState.pwmValue / 255;
+                    led.style.opacity = Math.max(0.15, opacity);
+                    led.style.boxShadow = `0 0 ${simState.pwmValue / 5}px rgba(245, 158, 11, ${opacity})`;
+                    appendSerialLog(`ADC Read: ${simState.pwmValue * 4} | PWM Duty: ${simState.pwmValue}`);
+                }
+            },
+            ultrasonic: {
+                title: "Praktikum 4: Sensor Ultrasonik HC-SR04 & Display LCD 16x2",
+                desc: "Mengukur jarak objek secara waktu nyata dan menampilkannya pada layar LCD I2C 16x2.",
+                code: `// Lab 4: Ultrasonic & LCD 16x2 I2C
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+const int trigPin = 7, echoPin = 6;
+
+void setup() {
+  lcd.init(); lcd.backlight();
+  pinMode(trigPin, OUTPUT); pinMode(echoPin, INPUT);
+}
+
+void loop() {
+  digitalWrite(trigPin, HIGH); delayMicroseconds(10); digitalWrite(trigPin, LOW);
+  long durasi = pulseIn(echoPin, HIGH);
+  int jarak = durasi * 0.034 / 2;
+
+  lcd.setCursor(0, 0); lcd.print("Jarak: "); lcd.print(jarak); lcd.print(" cm   ");
+  delay(300);
+}`,
+                renderControls: () => `
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-300">Simulasi Jarak Objek (Obstacle):</span>
+                            <span id="dist-val-label" class="text-emerald-400 font-mono">25 cm</span>
+                        </div>
+                        <input type="range" min="2" max="100" value="25" oninput="updateDistance(this.value)" class="w-full accent-emerald-400 cursor-pointer">
+                    </div>
+                `,
+                renderCanvas: () => `
+                    <div class="space-y-4 w-full flex flex-col items-center">
+                        <!-- LCD 16x2 Screen -->
+                        <div class="lcd-screen p-3 rounded-lg border-4 border-slate-700 shadow-inner w-64 text-center font-mono text-sm">
+                            <p id="lcd-line1">Jarak: 25 cm</p>
+                            <p id="lcd-line2" class="text-xs opacity-80">Status: AMAN</p>
+                        </div>
+                    </div>
+                `,
+                tick: () => {
+                    const l1 = document.getElementById('lcd-line1');
+                    const l2 = document.getElementById('lcd-line2');
+                    if (!l1 || !l2) return;
+
+                    l1.innerText = `Jarak: ${simState.distanceCm} cm`;
+                    if (simState.distanceCm < 10) {
+                        l2.innerText = `Status: BAHAYA!`;
+                        l2.className = "text-xs font-bold text-rose-900 animate-pulse";
+                    } else {
+                        l2.innerText = `Status: AMAN`;
+                        l2.className = "text-xs opacity-80";
+                    }
+                    appendSerialLog(`HC-SR04 Distance: ${simState.distanceCm} cm`);
+                }
+            },
+            servo: {
+                title: "Praktikum 5: Kontrol Sudut Motor Servo SG90",
+                desc: "Mengatur rotasi presisi lengan motor servo (0 - 180 Derajat).",
+                code: `// Lab 5: Servo Motor Angle Control
+#include <Servo.h>
+
+Servo myServo;
+
+void setup() {
+  myServo.attach(9); // Pin Servo di PWM 9
+  Serial.begin(9600);
+}
+
+void loop() {
+  int sudut = 90; // Sudut target
+  myServo.write(sudut);
+  Serial.print("Sudut Servo: "); Serial.println(sudut);
+  delay(500);
+}`,
+                renderControls: () => `
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-300">Atur Sudut Motor Servo (0° - 180°):</span>
+                            <span id="servo-angle-label" class="text-rose-400 font-mono">90°</span>
+                        </div>
+                        <input type="range" min="0" max="180" value="90" oninput="updateServo(this.value)" class="w-full accent-rose-500 cursor-pointer">
+                    </div>
+                `,
+                renderCanvas: () => `
+                    <div class="flex flex-col items-center gap-4">
+                        <!-- Servo Arm Canvas -->
+                        <div class="w-32 h-20 bg-blue-600 rounded-lg border-2 border-blue-400 relative flex items-center justify-center shadow-lg">
+                            <div class="w-8 h-8 rounded-full bg-white border-2 border-slate-400 absolute flex items-center justify-center">
+                                <div id="servo-arm" class="w-12 h-2 bg-slate-800 rounded-full origin-left transition-transform duration-200" style="transform: rotate(0deg);"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono text-slate-400">Motor Servo SG90 (Pin 9)</span>
+                    </div>
+                `,
+                tick: () => {
+                    const arm = document.getElementById('servo-arm');
+                    if (!arm) return;
+                    arm.style.transform = `rotate(${simState.servoAngle - 90}deg)`;
+                    appendSerialLog(`Servo Angle set to: ${simState.servoAngle}°`);
+                }
+            }
+        };
+
+        function loadSimulator(simKey) {
+            currentSimulator = simKey;
+            const cfg = simulatorConfigs[simKey];
+
+            // Reset simulator state
+            stopSimulation();
+
+            // Update simulator header buttons
+            document.querySelectorAll('.sim-selector-btn').forEach(btn => {
+                btn.className = "sim-selector-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700";
+            });
+            document.getElementById(`btn-sim-${simKey}`).className = "sim-selector-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 text-white";
+
+            // Inject Content
+            document.getElementById('sim-title').innerText = cfg.title;
+            document.getElementById('sim-description').innerText = cfg.desc;
+            document.getElementById('code-display-area').innerText = cfg.code;
+            document.getElementById('sim-canvas-area').innerHTML = cfg.renderCanvas();
+            document.getElementById('sim-controls-panel').innerHTML = cfg.renderControls();
+
+            addXP(5);
+        }
+
+        function toggleSimulationRun() {
+            if (isSimRunning) {
+                stopSimulation();
+            } else {
+                startSimulation();
+            }
+        }
+
+        function startSimulation() {
+            isSimRunning = true;
+            const btn = document.getElementById('btn-run-sim');
+            btn.innerHTML = `<i class="fa-solid fa-stop"></i> Hentikan Program`;
+            btn.className = "px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs rounded-md flex items-center gap-1.5 transition-colors shadow-lg shadow-rose-600/20";
+
+            appendSerialLog(`--- Program Di-upload & Dijalankan ---`);
+
+            const cfg = simulatorConfigs[currentSimulator];
+            simInterval = setInterval(() => {
+                if (cfg.tick) cfg.tick();
+            }, 800);
+        }
+
+        function stopSimulation() {
+            isSimRunning = false;
+            if (simInterval) clearInterval(simInterval);
+            const btn = document.getElementById('btn-run-sim');
+            if (btn) {
+                btn.innerHTML = `<i class="fa-solid fa-play"></i> Jalankan Program`;
+                btn.className = "px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-md flex items-center gap-1.5 transition-colors shadow-lg shadow-emerald-600/20";
+            }
+        }
+
+        // Live Controls Updates
+        function setPushButton(isPressed) {
+            simState.pushButtonPressed = isPressed;
+            if (isSimRunning && simulatorConfigs[currentSimulator].tick) {
+                simulatorConfigs[currentSimulator].tick();
+            }
+        }
+
+        function updatePWM(val) {
+            simState.pwmValue = parseInt(val);
+            const lbl = document.getElementById('pwm-val-label');
+            if (lbl) lbl.innerText = `PWM: ${val} / ADC: ${val * 4}`;
+            if (isSimRunning && simulatorConfigs[currentSimulator].tick) {
+                simulatorConfigs[currentSimulator].tick();
+            }
+        }
+
+        function updateDistance(val) {
+            simState.distanceCm = parseInt(val);
+            const lbl = document.getElementById('dist-val-label');
+            if (lbl) lbl.innerText = `${val} cm`;
+            if (isSimRunning && simulatorConfigs[currentSimulator].tick) {
+                simulatorConfigs[currentSimulator].tick();
+            }
+        }
+
+        function updateServo(val) {
+            simState.servoAngle = parseInt(val);
+            const lbl = document.getElementById('servo-angle-label');
+            if (lbl) lbl.innerText = `${val}°`;
+            if (isSimRunning && simulatorConfigs[currentSimulator].tick) {
+                simulatorConfigs[currentSimulator].tick();
+            }
+        }
+
+        // ================= EXAM ENGINE LOGIC =================
+        function startExam() {
+            document.getElementById('exam-intro-card').classList.add('hidden');
+            document.getElementById('exam-main-area').classList.remove('hidden');
+            currentQuestionIdx = 0;
+            userAnswers = {};
+            examSubmitted = false;
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const qData = questionBank[currentQuestionIdx];
+            document.getElementById('question-badge').innerText = `Soal ${currentQuestionIdx + 1} dari 25`;
+            document.getElementById('question-text').innerText = qData.q;
+
+            // Update Progress Bar
+            const progPercent = ((currentQuestionIdx + 1) / 25) * 100;
+            document.getElementById('exam-progress-bar').style.width = `${progPercent}%`;
+
+            // Render Options
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            qData.options.forEach((opt, idx) => {
+                const isSelected = userAnswers[currentQuestionIdx] === idx;
+                const optBtn = document.createElement('button');
+                optBtn.className = `w-full text-left p-4 rounded-xl border transition-all text-xs md:text-sm font-medium flex items-center gap-3 ${
+                    isSelected 
+                    ? 'bg-cyan-500/10 border-cyan-400 text-cyan-300' 
+                    : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                }`;
+                
+                const optionLabel = String.fromCharCode(65 + idx); // A, B, C, D
+                optBtn.innerHTML = `
+                    <span class="w-7 h-7 rounded-lg border ${isSelected ? 'border-cyan-400 bg-cyan-500/20 text-cyan-400' : 'border-slate-700 bg-slate-900 text-slate-400'} flex items-center justify-center font-bold text-xs shrink-0">
+                        ${optionLabel}
+                    </span>
+                    <span>${opt}</span>
+                `;
+                optBtn.onclick = () => selectOption(idx);
+                container.appendChild(optBtn);
+            });
+
+            // Button visibility
+            document.getElementById('btn-prev-q').disabled = (currentQuestionIdx === 0);
+            
+            if (currentQuestionIdx === 24) {
+                document.getElementById('btn-next-q').classList.add('hidden');
+                document.getElementById('btn-submit-q').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-next-q').classList.remove('hidden');
+                document.getElementById('btn-submit-q').classList.add('hidden');
+            }
+        }
+
+        function selectOption(idx) {
+            userAnswers[currentQuestionIdx] = idx;
+            renderQuestion();
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIdx > 0) {
+                currentQuestionIdx--;
+                renderQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIdx < 24) {
+                currentQuestionIdx++;
+                renderQuestion();
+            }
+        }
+
+        function submitExam() {
+            examSubmitted = true;
+            document.getElementById('exam-main-area').classList.add('hidden');
+            const resultCard = document.getElementById('exam-result-card');
+            resultCard.classList.remove('hidden');
+
+            // Calculate Score
+            let correctCount = 0;
+            questionBank.forEach((q, idx) => {
+                if (userAnswers[idx] === q.answer) {
+                    correctCount++;
+                }
+            });
+
+            const score = Math.round((correctCount / 25) * 100);
+            const isPassed = score >= 75;
+
+            addXP(score * 5); // Add XP based on score
+
+            let explanationHTML = '';
+            questionBank.forEach((q, idx) => {
+                const userAns = userAnswers[idx];
+                const isCorrect = userAns === q.answer;
+                explanationHTML += `
+                    <div class="bg-slate-950 p-4 rounded-xl border ${isCorrect ? 'border-emerald-500/30' : 'border-rose-500/30'} space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="${isCorrect ? 'text-emerald-400' : 'text-rose-400'} font-bold text-xs">
+                                ${isCorrect ? '<i class="fa-solid fa-circle-check"></i> BENAR' : '<i class="fa-solid fa-circle-xmark"></i> SALAH'}
+                            </span>
+                            <span class="text-xs text-slate-400">Soal #${idx + 1}</span>
+                        </div>
+                        <p class="text-xs text-slate-200 font-semibold">${q.q}</p>
+                        <p class="text-xs text-slate-400">Jawaban Anda: <span class="${isCorrect ? 'text-emerald-300' : 'text-rose-300'} font-mono">${userAns !== undefined ? q.options[userAns] : 'Tidak Dijawab'}</span></p>
+                        ${!isCorrect ? `<p class="text-xs text-emerald-400">Kunci Jawaban: <span class="font-mono">${q.options[q.answer]}</span></p>` : ''}
+                        <p class="text-[11px] text-slate-400 bg-slate-900 p-2 rounded border border-slate-800 leading-relaxed"><strong class="text-cyan-400">Pembahasan Teknis:</strong> ${q.explanation}</p>
+                    </div>
+                `;
+            });
+
+            resultCard.innerHTML = `
+                <div class="text-center space-y-3 border-b border-slate-800 pb-6">
+                    <div class="w-20 h-20 rounded-full ${isPassed ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-rose-500/10 border-rose-500 text-rose-400'} border-2 flex items-center justify-center mx-auto text-3xl font-bold">
+                        ${score}
+                    </div>
+                    <h3 class="text-xl font-bold ${isPassed ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${isPassed ? 'Lulus Uji Kompetensi TEI!' : 'Belum Mencapai Passing Grade'}
+                    </h3>
+                    <p class="text-xs text-slate-400">
+                        Anda menjawab benar <strong>${correctCount} dari 25 Soal</strong> (Nilai: ${score}/100). +${score * 5} XP Ditambahkan!
+                    </p>
+                    <button onclick="startExam()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-bold rounded-xl border border-slate-700 transition-all">
+                        <i class="fa-solid fa-rotate-right"></i> Ulangi Uji Kompetensi
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <h4 class="font-bold text-slate-100 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-cyan-400"></i> Evaluasi & Pembahasan Jawaban Lengkap:
+                    </h4>
+                    <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                        ${explanationHTML}
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
